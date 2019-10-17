@@ -3,8 +3,9 @@
 
 ### Objectives
 YWBAT 
-* apply the clt to find the mean and std of a population
+* apply the clt (central limit theorem) to find the mean and std of a population
 * define the clt
+    * a statistic across multiple samples (a sampling distribution) will be normal, centered on the population statistic
 * use sampling to find sampling statistics
 
 ### Outline
@@ -33,267 +34,118 @@ def make_hist(arr):
     plt.show()
 ```
 
-## Create some data
+## Create some non normal data
 
 
 ```python
 # height of a population
 # we don't know what our data is
-loc = np.random.randint(48, 72)
-scale = np.random.randint(5, 9)
-popsize = np.random.randint(1000, 1500)
-pop = np.random.normal(loc=loc, scale=scale, size=popsize)
-```
+population1 = np.random.randint(50, 80, size=200)
+population2 = np.random.randint(60, 150, size=200)
 
-### Calculate the population mean (with some certainty) using sampling distributions
+population = np.column_stack([population1, population2]).flatten()
 
-
-```python
-sample_means = []
-for i in range(30):
-    samp = np.random.choice(pop, size=100, replace=False)
-    sample_means.append(samp.mean())
-```
-
-
-```python
-plt.figure(figsize=(5, 5))
-plt.grid(linestyle='dashed')
-plt.hist(sample_means, color='r', alpha=0.5)
+plt.hist(population)
 plt.show()
 ```
 
 
-![png](lesson-plan_files/lesson-plan_9_0.png)
+![png](lesson-plan_files/lesson-plan_6_0.png)
 
 
 
 ```python
-# how do we test for normality?
-scs.skew(sample_means), scs.kurtosis(sample_means, fisher=False)
-```
+# let's take 30 samples
 
+# let's calculate the mean of the population, acting like we don't know the population
 
+samp_means = []
 
-
-    (-0.7136669566700377, 3.8101325840693745)
-
-
-
-
-```python
-print(np.mean(sample_means) - 3*np.std(sample_means), np.mean(sample_means) + 3*np.std(sample_means))
-```
-
-    51.79585182468757 56.739289606174104
-
-
-
-```python
-np.mean(sample_means)
-```
-
-
-
-
-    54.267570715430836
-
-
-
-### How do we calculate the population standard deviation?
-
-
-```python
-sample_stds = []
 for i in range(30):
-    samp = np.random.choice(pop, size=100, replace=False)
-    sample_stds.append(samp.std())
+    # took a sample of 40 people
+    samp = np.random.choice(population, size=40)
+    # calculated the mean
+    samp_mean = samp.mean()
+    # add that to our samp_means
+    samp_means.append(samp_mean)
+    
+print(samp_means)
 ```
+
+    [84.275, 88.7, 77.475, 85.3, 81.5, 78.0, 81.05, 78.25, 87.425, 92.45, 83.275, 84.425, 88.9, 84.0, 87.775, 78.175, 85.2, 89.3, 81.0, 86.675, 92.075, 89.075, 89.525, 79.875, 83.925, 81.8, 88.175, 87.5, 83.875, 81.375]
+
 
 
 ```python
+estimated_mean = np.mean(samp_means)
+true_mean = population.mean()
 
-plt.figure(figsize=(5, 5))
-plt.grid(linestyle='dashed')
-plt.hist(sample_stds, color='r', alpha=0.5)
+estimated_mean, true_mean, np.abs(estimated_mean-true_mean)
+```
+
+
+
+
+    (84.67833333333334, 84.8975, 0.21916666666665208)
+
+
+
+#### notice we were only off by 0.219
+
+### How confident are we about this mean? 
+
+
+```python
+estimated_mean = np.mean(samp_means)
+sample_standard_deviation = np.std(samp_means, ddof=1)
+
+hyp_dis_of_mean = np.random.normal(estimated_mean, sample_standard_deviation, size=100)
+
+plt.hist(hyp_dis_of_mean)
+plt.title("Sampling Distribution of Means\nWith Sample Standard Deviation")
+plt.vlines(x=estimated_mean, ymin=0, ymax=25, linestyle='dashed', 
+           linewidth=2, colors='r', label='calc mean')
+plt.legend()
 plt.show()
 ```
 
 
-![png](lesson-plan_files/lesson-plan_15_0.png)
+![png](lesson-plan_files/lesson-plan_11_0.png)
 
 
 
 ```python
-scs.skew(sample_stds), scs.kurtosis(sample_stds, fisher=False)
+lower_99 = estimated_mean - 3*sample_standard_deviation
+upper_99 = estimated_mean + 3*sample_standard_deviation
+
+lower_99, upper_99
 ```
 
 
 
 
-    (0.07491090271341218, 2.2486691017922027)
+    (71.99568057318561, 97.36098609348107)
 
 
 
 
 ```python
-print(np.mean(sample_stds) - 3*np.std(sample_stds), np.mean(sample_stds) + 3*np.std(sample_stds))
-```
+lower_67 = estimated_mean - 1*sample_standard_deviation
+upper_67 = estimated_mean + 1*sample_standard_deviation
 
-    6.627438005035517 10.250677641064202
-
-
-
-```python
-np.mean(sample_stds)
+lower_67, upper_67
 ```
 
 
 
 
-    8.43905782304986
-
-
-
-
-```python
-# spread of our sampling means? 
-np.mean(sample_stds) / 10
-```
-
-
-
-
-    0.8439057823049859
-
-
-
-### Verifying if our sampling estimated our mean/std correctly...
-It did
-
-
-```python
-np.mean(sample_means), pop.mean()
-```
-
-
-
-
-    (54.267570715430836, 54.254315264939486)
-
-
-
-
-```python
-np.mean(sample_stds), pop.std()
-```
-
-
-
-
-    (8.43905782304986, 8.439896288978073)
-
-
-
-### Does our population need to be normal?
-
-
-```python
-# hours of sleep students get at flatiron
-students = np.random.normal(5, 0.2, size=1000)
-
-# hours of sleep employees get at flatiron
-employees = np.random.normal(8, 1.0, size=1000)
-```
-
-
-```python
-all_flatiron = np.concatenate([students, employees])
-all_flatiron.shape
-```
-
-
-
-
-    (2000,)
-
-
-
-
-```python
-make_hist(all_flatiron)
-```
-
-
-![png](lesson-plan_files/lesson-plan_26_0.png)
-
-
-
-```python
-sample_means = []
-sample_stds = []
-
-for i in range(30):
-    samp = np.random.choice(all_flatiron, size=100)
-    sample_means.append(np.mean(samp))
-    sample_stds.append(np.std(samp))
-```
-
-
-```python
-make_hist(sample_means)
-make_hist(sample_stds)
-```
-
-
-![png](lesson-plan_files/lesson-plan_28_0.png)
-
-
-
-![png](lesson-plan_files/lesson-plan_28_1.png)
-
-
-
-```python
-np.mean(all_flatiron), np.mean(sample_means)
-```
-
-
-
-
-    (6.506361834201236, 6.494152262884501)
-
-
-
-
-```python
-np.std(all_flatiron), np.mean(sample_stds)
-```
-
-
-
-
-    (1.6728808853851138, 1.6536313679786818)
-
-
-
-
-```python
-# What if we took a sample of people and got a mean of 7.0
-# What is the probability that the sample came from flatiron?
-mu = 7.0
-```
-
-
-```python
-scs.ttest_1samp(sample_means, 7.0)
-```
-
-
-
-
-    Ttest_1sampResult(statistic=-16.993119437706515, pvalue=1.2900103036426018e-16)
+    (80.4507824132841, 88.90588425338258)
 
 
 
 ### Assessment
+
+
+```python
+
+```
